@@ -1,0 +1,110 @@
+var ForReading = 1, ForWriting = 2, ForAppending = 8;
+
+
+// 検索する正規表現
+var regex = new RegExp("ユーザ", "gim");
+
+// ドラッグ・アンド・ドロップされたファイルを確認する
+if (WScript.Arguments.Count() == 0) {
+  WScript.echo("ファイルがありません。");
+  WScript.Quit();
+}
+
+var excel = createExcelObject(true);
+
+// ドラッグ・アンド・ドロップされたファイルを1つずつ処理する
+for (var i = 0; i < WScript.Arguments.Count(); i++) {
+   exec(WScript.Arguments.Item(i));
+}
+
+
+excel.Quit();
+
+
+function exec(fileName) {
+
+	var book = excel.Workbooks.Open(fileName); 
+
+	var path = getCurrentPath() + "\\ExcelSearch.log";
+	
+	var logFile = openTextFile(path);
+	
+	logFile.WriteLine("Book:" + book.name);
+	
+	for (var i = 1; i <=  book.Worksheets.Count; i++) {
+		var sheet = book.Worksheets(i);
+
+		check(sheet, logFile);
+	}
+	
+	logFile.Close();
+		
+	book.Close();
+}
+
+function check(sheet, logFile) {
+
+	var lastRow = getLastRow(sheet);
+	var lastCol = getLastCol(sheet);
+	
+	// echo(sheet.Name + " lastRow = " + lastRow + " lastCol = " + lastCol);
+
+	for (var row = 1; row <= lastRow; row++) {
+		for (var col = 1; col <= lastCol; col++) {
+			var cell = sheet.Cells(row, col);
+			if (cell.Value) {
+				var value = cell.Value.toString();
+				if (value.match(regex)) {
+					logFile.WriteLine(sheet.Name + "!" + cell.Address(false, false) + " : " + value);
+				}
+			}
+		}
+	}
+
+}
+
+function createFso() {
+	return new ActiveXObject("Scripting.FileSystemObject");
+}
+
+function createShell() {
+	return new ActiveXObject("WScript.Shell");
+}
+
+function openTextFile(path, fso) {
+	fso = fso || createFso();
+	var fileInfo = fso.OpenTextFile(path, ForAppending, true);
+	return fileInfo;
+}
+
+function createExcelObject(visible) {
+	var excel = new ActiveXObject("Excel.Application");
+	excel.Visible = !!visible;
+	excel.DisplayAlerts = false;
+	return excel;
+}
+
+function getLastRow(sheet) {
+	var usedRange = sheet.UsedRange;
+	if (usedRange.Count < 1) {
+		return 0;
+	} 
+	return usedRange.Cells(usedRange.Count).Row;
+}
+
+function getLastCol(sheet) {
+	var usedRange = sheet.UsedRange;
+	if (usedRange.Count < 1) {
+		return 0;
+	} 
+	return usedRange.Cells(usedRange.Count).Column;
+}
+
+function getCurrentPath(fso) {
+	fso = fso || createFso();
+	return fso.getParentFolderName(WScript.ScriptFullName);
+}
+
+function echo(msg) {
+	WScript.echo(msg);
+}

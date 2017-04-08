@@ -14,7 +14,7 @@ td {
    <th>File Name</th><th>Size</th><th>Last Modified</th>
 </tr>
 <%
-	String dirPath = "./files";
+	String dirPath = "./files/";
 	File dir = new File(application.getRealPath(dirPath));
 	File[] files = dir.listFiles();
 	for (int i = 0; i < files.length; i++) {

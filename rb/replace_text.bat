@@ -1,0 +1,1 @@
+ruby -p -i.bak -e '$_.gsub!(/a/, "A") ' *.txt 

@@ -1,0 +1,77 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>SQL Result on HOST_NAME</title>
+<style>
+table {
+	font-size: 12px;
+	border-collapse: collapse;
+}
+
+th, td {
+	padding: 5px;
+}
+
+th {
+	background: #EEE;
+}
+
+.executedSql {
+	margin: 0px 10px;
+}
+.result {
+	padding: 10px;
+	width: 2000px;
+}
+.info {
+	margin: 10px;
+}
+
+.recordCountArea {
+	margin: 10px;
+}
+
+#label {
+	margin-left: 15px;
+}
+</style>
+<script>
+function init(){
+	var resultDiv = document.getElementById("result1");
+	document.getElementById("count1").innerHTML = resultDiv.getElementsByTagName("TR").length - 1;
+}
+
+function showSQL(){ 
+	document.getElementById('sql').style.display='inline-block';
+	document.getElementById('label').style.display='none';
+}
+
+window.onload = init;
+</script>
+</head>
+<body>
+<div class="info">
+	実行日時：<span id="executed_datetime">EXECUTED_DATETIME<span>
+</div>
+<div id="label">SQL
+	<button id="btnShow" onclick="showSQL();">表示</button>
+</div>
+
+<fieldset id="sql" style="display: none;">
+<legend>SQL</legend>
+<div class="executedSql">
+<pre>
+EXECUTED_SQL
+</pre>
+</div>
+</fieldset>
+
+<div id="result1" class="result">
+SQL_RESULT
+</div>
+
+<!-- Record Count -->
+<div class="recordCountArea">件数：<span id="count1"></span></div>
+
+</body></html>
+
