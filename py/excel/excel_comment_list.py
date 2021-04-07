@@ -11,10 +11,10 @@ OUT_FILE_ENCODING = 'utf-8'
 OUTPUT_FORMAT = '{address}\t"{comment}"'
 
 # 対象シート名 （指定してあれば、こちらだけが対象）
-INCL_WS_NAMES = ["5-1.要件_システム状態遷移"]
+INCL_WS_NAMES = []
 
 # 除外するシート名
-EXCL_WS_NAMES = ["表紙Cover", "改訂履歴", "一覧"]
+EXCL_WS_NAMES = ["表紙", "改訂履歴"]
 
 
 def get_worksheet_comment_values(ws):
