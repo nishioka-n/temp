@@ -1,10 +1,21 @@
 
 from datetime import date, datetime, timedelta
 import locale
-import requests  # pip install requests
+# import requests  # pip install requests
+import os
 import sys
 
 # args[0] = "200101"
+
+USE_HOLIDAYS = False
+
+
+def set_locale():
+    if os.name == 'nt':
+        locale.setlocale(locale.LC_ALL, '')
+    else:
+        locale.setlocale(locale.LC_TIME, 'ja_JP.UTF-8')
+    # print(locale.getlocale(locale.LC_TIME))
 
 
 def main(args):
@@ -19,13 +30,11 @@ def main(args):
         yyyymmdd = args[0] + "01"
         dt_start = datetime.strptime(yyyymmdd, "%Y%m%d")
 
-    print("{}年{}月".format(dt_start.year, dt_start.month))
+    # print("{}年{}月".format(dt_start.year, dt_start.month))
 
-    locale.setlocale(locale.LC_ALL, '')
-    # print(locale.getlocale(locale.LC_TIME))
-
-    holidays = get_holidays(dt_start.year)
-    date_format = '%Y-%m-%d'
+    set_locale()
+    
+    holidays, date_format = get_holidays(dt_start.year)
 
     for i in range(31):
         dt = dt_start + timedelta(days=i)
@@ -41,10 +50,16 @@ def main(args):
         print("{}/{}({})".format(dt.month, dt.day, w))
 
 
-def get_holidays(year) -> dict:
+def get_holidays(year) -> (dict, str) :
     url = f'https://holidays-jp.github.io/api/v1/{year}/date.json'
+    date_format = '%Y-%m-%d'
+
+    if not USE_HOLIDAYS:
+        return {}, date_format
+
+    import requests
     response = requests.get(url.format(year))
-    return response.json()
+    return response.json(), date_format
 
 if __name__ == '__main__':
     main(sys.argv[1:])
