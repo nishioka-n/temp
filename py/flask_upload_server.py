@@ -1,68 +1,66 @@
 # Fask Upload Server
 
+from flask import Flask, request  # pip install Flask
 import os
-from flask import Flask, flash, request, redirect, url_for, send_from_directory
-# from werkzeug.utils import secure_filename
+import sys
 
-UPLOAD_FOLDER = '.'
-# ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+# アップロード先ディレクトリ（なければ作成）
+UPLOAD_PATH = './upload'
+
+# Webサーバーのポート番号（コマンドライン引数で指定された場合は上書き）
+PORT = 80
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['UPLOAD_PATH'] = UPLOAD_PATH
 
-
-def allowed_file(filename):
-    # return '.' in filename and \
-    #        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-    return True
-
-@app.route('/uploads/<filename>')
-def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'],
-                               filename)
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'GET':
-        return upload_html()
+        return form_html()
 
-    # check if the post request has the file part
-    # if 'file' not in request.files:
-    #     flash('No file part')
-    #     return redirect(request.url)
-    file = request.files['file']
-    # if user does not select file, browser also
-    # submit an empty part without filename
-    # if file.filename == '':
-    #     flash('No selected file')
-    #     return redirect(request.url)
-    if file and allowed_file(file.filename):
-        # filename = secure_filename(file.filename)
-        filename = file.filename
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        # return redirect(url_for('uploaded_file', filename=filename))
-        return complete_html()
+    os.makedirs(UPLOAD_PATH, exist_ok=True)
 
-def upload_html():
+    files = request.files.getlist('files[]')
+    filenames = []
+    for file in files:
+        if file:
+            filename = file.filename
+            print(filename)
+            filenames.append(filename)
+            file.save(os.path.join(UPLOAD_PATH, filename))
+    return complete_html(filenames)
+
+
+def form_html():
     return '''
     <!doctype html>
-    <title>Upload File</title>
+    <title>Upload Files</title>
     <form method=post enctype=multipart/form-data>
-      <input type=file name=file>
+      <input type=file name="files[]" multiple="multiple">
       <input type=submit value=Upload>
     </form>
     '''
 
-def complete_html():
-    return '''
+def complete_html(filenames):
+    filenames_html = "<ul>"
+    for filename in filenames:
+        filenames_html += f'<li>{filename}</li>'
+    filenames_html += "</ul>"
+
+    return f'''
     <!doctype html>
     <title>Upload Complete</title>
-    <body>
-    <h2>Upload Complete</h2>
+    <p>OK</p>
+    {filenames_html}
     <a href="/">Back</a>
-    </body>
-    </html>
     '''
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=80)  # debug=True -> Reload
+    server_port = PORT
+    if len(sys.argv) > 1:
+        arg1 = sys.argv[1]
+        if arg1.isdigit():
+            server_port = int(arg1)
+
+    app.run(debug=True, host='0.0.0.0', port=server_port)  # debug=True -> Reload
