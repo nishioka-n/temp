@@ -17,7 +17,7 @@ def escape4sql(value):
     escaped = value \
         .replace('"', '\\"').replace("'", "\\'") \
         .replace("(", "\\(").replace(")", "\\)")
-    if ESCAPE_LF:
+    if ESCAPE_LF:        
         escaped = escaped.replace("\n", "\\n")
     return escaped
 
@@ -28,10 +28,10 @@ def get_col_index(col_name):
 
 
 # テキストファイル出力
-def write_to_text_file(txt_file_name, lines, encoding="UTF-8"):
-    with open(txt_file_name, "w", encoding=encoding) as f:
+def write_to_text_file(txt_file_name, lines, encoding="UTF-8", newline="\n"):
+    with open(txt_file_name, "w", encoding=encoding, newline=newline) as f:
         for line in lines:
-            f.write(line + '\n')
+            f.write(line + newline)
 
 
 # 各シートごとの処理
@@ -54,6 +54,10 @@ def process_worksheet(ws):
     language_code_1st_col = get_col_index(cs['language_code_1st_col'])
     target_cond_col = get_col_index(cs['target_cond_col'])
     target_cond_str = cs['target_cond_str']
+    target_language_codes = cs['target_language_codes']
+
+    # 全言語が対象かどうか
+    is_all_lang = (len(target_language_codes) == 0 or language_count == len(target_language_codes))
 
     min_row = item_start_row
     max_col = language_code_1st_col + language_count
@@ -82,6 +86,10 @@ def process_worksheet(ws):
         # 各列の処理（言語数分）
         for col_index in range(language_code_1st_col, max_col):
             language_code = lang_code_list[col_index - language_code_1st_col]
+            # 言語コードがすべてでなければ、指定の言語のみ対象とする
+            if not is_all_lang and not language_code in target_language_codes:
+                continue
+
             message_cell = row[col_index - 1]
             message = message_cell.value
             if not message:
@@ -90,9 +98,15 @@ def process_worksheet(ws):
             # メッセージのエスケープ処理
             message = escape4sql(message)
             # SQL生成
-            del_sql = DELETE_SQL_FORMAT.format(item_type=item_type, item_id=item_id, language_code=language_code)
-            ins_sql = INSERT_SQL_FORMAT.format(item_type=item_type, item_id=item_id, language_code=language_code, message=message)
-            del_lines.append(del_sql)
+
+            if not is_all_lang:
+                del_sql = DELETE_SQL_LANG.format(item_type=item_type, item_id=item_id, language_code=language_code)
+                del_lines.append(del_sql)
+            elif col_index == language_code_1st_col:
+                del_sql = DELETE_SQL_ITEM.format(item_type=item_type, item_id=item_id)
+                del_lines.append(del_sql)
+
+            ins_sql = INSERT_SQL.format(item_type=item_type, item_id=item_id, language_code=language_code, message=message)
             ins_lines.append(ins_sql)
 
     return del_lines, ins_lines
@@ -109,7 +123,10 @@ def process_workbook(xlsx_file_name):
     for ws in wb.worksheets:
         if not ws.title in sheet_names:
             continue
+        lines.append("")
         lines.append(f"-- {ws.title}")
+
+        # 各シートの処理
         del_lines, ins_lines = process_worksheet(ws)
         lines.extend(del_lines)
         lines.extend(ins_lines)
@@ -132,7 +149,8 @@ def main(args):
 
     # ファイル出力
     output_encoding = common_config['output_encoding']
-    write_to_text_file(output_file_name, lines, output_encoding)
+    output_newline = common_config['output_newline']
+    write_to_text_file(output_file_name, lines, output_encoding, output_newline)
 
     print("処理完了")
 
