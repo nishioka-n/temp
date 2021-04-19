@@ -1,24 +1,23 @@
-# 翻訳リストのExcelファイルからSQL(DML : DELETE, INSERT)を生成しファイル出力
+# 翻訳リストのExcelファイルからSQL(DML: DELETE, INSERT)を生成しファイル出力するツール
 # 
-# * PEP8 には従っていません。（社内ツールなので...）
+# PEP8 には従っていません。（社内ツールなので、ご容赦ください...）
 # 
 
 import os
 import sys
 import openpyxl as px
-from glob import glob
 
 # 各種設定定義
 from config import *
 
 
-# SQLのためのエスケープ処理
+# メッセージ用エスケープ処理（翻訳リストのExcel関数より）
 def escape4sql(value):
     escaped = value \
         .replace('"', '\\"').replace("'", "\\'") \
         .replace("(", "\\(").replace(")", "\\)")
     if ESCAPE_LF:        
-        escaped = escaped.replace("\n", "\\n")
+        escaped = escaped.replace("\n", "\\n")  # 既存に合わせて、 \r\n に対応する場合は要改修
     return escaped
 
 
@@ -56,7 +55,7 @@ def process_worksheet(ws):
     target_cond_str = cs['target_cond_str']
     target_language_codes = cs['target_language_codes']
 
-    # 全言語が対象かどうか
+    # 全言語コードが対象かどうか
     is_all_lang = (len(target_language_codes) == 0 or language_count == len(target_language_codes))
 
     min_row = item_start_row
@@ -66,11 +65,9 @@ def process_worksheet(ws):
     lang_code_list = []
     for col in range(language_code_1st_col, max_col):
         lang_code_list.append(ws.cell(column=col, row=language_code_row).value)
-    # print(lang_code_list)
 
     # 各行の処理（速度の問題があり、イテレータで各行を取得し、リストインデックスでのセル参照方式採用）
     for row in ws.iter_rows(min_row=min_row, max_row=max_row, max_col=max_col):
-        
         # 条件が指定されていれば、一致しない行を除外
         if target_cond_str:
             condition_value = row[target_cond_col - 1].value
@@ -79,14 +76,14 @@ def process_worksheet(ws):
 
         item_type = row[item_type_col - 1].value
         item_id = row[item_id_col - 1].value
-        if item_type == None:
+        if not item_type:
             continue
         print(f"{item_type}-{item_id}")
 
         # 各列の処理（言語数分）
         for col_index in range(language_code_1st_col, max_col):
             language_code = lang_code_list[col_index - language_code_1st_col]
-            # 言語コードがすべてでなければ、指定の言語のみ対象とする
+            # 言語コードがすべて対象でなければ、指定の言語コード以外は除外する
             if not is_all_lang and not language_code in target_language_codes:
                 continue
 
@@ -97,15 +94,16 @@ def process_worksheet(ws):
 
             # メッセージのエスケープ処理
             message = escape4sql(message)
-            # SQL生成
-
+            # DELETE文生成
             if not is_all_lang:
+                # 言語コードごと
                 del_sql = DELETE_SQL_LANG.format(item_type=item_type, item_id=item_id, language_code=language_code)
                 del_lines.append(del_sql)
             elif col_index == language_code_1st_col:
+                # アイテムごと（1回だけ生成）： メッセージの有無まで見ないと不要な出力してしまうので、仕方なくこの位置にある。
                 del_sql = DELETE_SQL_ITEM.format(item_type=item_type, item_id=item_id)
                 del_lines.append(del_sql)
-
+            # INSERT文生成
             ins_sql = INSERT_SQL.format(item_type=item_type, item_id=item_id, language_code=language_code, message=message)
             ins_lines.append(ins_sql)
 
@@ -128,6 +126,7 @@ def process_workbook(xlsx_file_name):
 
         # 各シートの処理
         del_lines, ins_lines = process_worksheet(ws)
+
         lines.extend(del_lines)
         lines.extend(ins_lines)
     return lines
@@ -137,7 +136,10 @@ def main(args):
 
     # 入力ファイル指定（一時的に違うファイルを指定する場合は、コマンドライン第一引数で指定）
     input_file_name = args[0] if len(args) > 0 else common_config['input_file_name']
-    print(f"入力ファイル:{input_file_name}")
+    print(f"入力ファイル: {input_file_name}")
+    if not os.path.isfile(input_file_name):
+        print("ファイルが見つかりません。")
+        sys.exit(1)
 
     # SQL生成処理
     lines = process_workbook(input_file_name)
@@ -145,7 +147,7 @@ def main(args):
 
     # 出力ファイル指定（一時的に違うファイルを指定する場合は、コマンドライン第二引数で指定）
     output_file_name = args[1] if len(args) > 1 else common_config['output_file_name']
-    print(f"出力ファイル:{output_file_name}")
+    print(f"出力ファイル: {output_file_name}")
 
     # ファイル出力
     output_encoding = common_config['output_encoding']
