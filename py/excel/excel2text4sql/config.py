@@ -8,13 +8,13 @@
 # 
 
 # セル内の改行(Lf) をエスケープするか（True: "\\n" ; False: メッセージの改行をそのまま出力）
-# メッセージの改行をそのまま出力した場合は、共通設定の出力ファイルの改行コードが、CrLfの場合に混在するかもしれません。
+# メッセージの改行をそのまま出力した場合は、共通設定の出力ファイルの改行コードが、CrLfの場合に混在するので注意。（ので推奨は、エスケープする）
 ESCAPE_LF = False
 
 # DELETE文のフォーマット（既存の手動作成の書式を貼り付け）
 DELETE_SQL_ITEM = "delete from item_master where item_type='{item_type}' and item_id='{item_id}';"
 
-# DELETE文(言語単位)のフォーマット（既存の手動作成の書式を貼り付け）
+# DELETE文(言語単位)のフォーマット（既存の手動作成の書式を貼り付け）： 特定の言語コード指定の場合に使用。
 DELETE_SQL_LANG = "delete from item_master where item_type='{item_type}' and item_id='{item_id}' and language_code='{language_code}';"
 
 # INSERT文のフォーマット（既存の手動作成の書式を貼り付け）
